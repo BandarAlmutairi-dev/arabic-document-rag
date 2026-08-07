@@ -2,6 +2,11 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
+from app.document_parser import (
+    extract_text_from_docx,
+    extract_text_from_pdf,
+)
+
 app = FastAPI(
     title="Arabic Document RAG",
     version="0.1.0",
@@ -35,8 +40,22 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, str]:
             detail="Only PDF and DOCX files are supported",
         )
 
+    file_bytes = await file.read()
+
+    try:
+        if extension == ".pdf":
+            text = extract_text_from_pdf(file_bytes)
+        else:
+            text = extract_text_from_docx(file_bytes)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to parse document",
+        ) from exc
+
     return {
         "filename": filename,
         "content_type": file.content_type or "unknown",
-        "status": "accepted",
+        "status": "processed",
+        "text": text,
     }
