@@ -6,6 +6,7 @@ from app.document_parser import (
     extract_text_from_docx,
     extract_text_from_pdf,
 )
+from app.text_chunker import split_text
 
 app = FastAPI(
     title="Arabic Document RAG",
@@ -30,7 +31,7 @@ def health_check() -> dict[str, str]:
 
 
 @app.post("/documents/upload")
-async def upload_document(file: UploadFile = File(...)) -> dict[str, str]:
+async def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
     filename = file.filename or ""
     extension = Path(filename).suffix.lower()
 
@@ -47,10 +48,13 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, str]:
             text = extract_text_from_pdf(file_bytes)
         else:
             text = extract_text_from_docx(file_bytes)
+
+        chunks = split_text(text)
+
     except Exception as exc:
         raise HTTPException(
             status_code=400,
-            detail="Unable to parse document",
+            detail="Unable to process document",
         ) from exc
 
     return {
@@ -58,4 +62,6 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, str]:
         "content_type": file.content_type or "unknown",
         "status": "processed",
         "text": text,
+        "chunks": chunks,
+        "chunk_count": len(chunks),
     }
