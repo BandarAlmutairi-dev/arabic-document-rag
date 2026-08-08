@@ -1,4 +1,5 @@
 from io import BytesIO
+from unittest.mock import patch
 
 from docx import Document
 from fastapi.testclient import TestClient
@@ -29,7 +30,13 @@ def create_docx() -> bytes:
     return buffer.getvalue()
 
 
-def test_upload_pdf():
+def fake_embeddings(chunks: list[str]) -> list[list[float]]:
+    return [[0.1] * 384 for _ in chunks]
+
+
+@patch("app.main.store_chunks")
+@patch("app.main.embed_documents", side_effect=fake_embeddings)
+def test_upload_pdf(mock_embed_documents, mock_store_chunks):
     response = client.post(
         "/documents/upload",
         files={"file": ("sample.pdf", create_pdf(), "application/pdf")},
@@ -49,7 +56,9 @@ def test_reject_unsupported_file():
     assert response.status_code == 400
 
 
-def test_upload_docx():
+@patch("app.main.store_chunks")
+@patch("app.main.embed_documents", side_effect=fake_embeddings)
+def test_upload_docx(mock_embed_documents, mock_store_chunks):
     response = client.post(
         "/documents/upload",
         files={
