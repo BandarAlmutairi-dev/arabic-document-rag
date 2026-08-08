@@ -1,14 +1,17 @@
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from pydantic import BaseModel
 
 from app.document_parser import (
     extract_pages_from_pdf,
     extract_paragraphs_from_docx,
 )
 from app.embeddings import embed_documents
+from app.rag_service import generate_answer
 from app.text_chunker import split_text
 from app.vector_store import store_chunks
+
 
 app = FastAPI(
     title="Arabic Document RAG",
@@ -16,6 +19,11 @@ app = FastAPI(
 )
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx"}
+
+
+class QuestionRequest(BaseModel):
+    question: str
+    limit: int = 3
 
 
 @app.get("/")
@@ -33,7 +41,9 @@ def health_check() -> dict[str, str]:
 
 
 @app.post("/documents/upload")
-async def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
+async def upload_document(
+    file: UploadFile = File(...),
+) -> dict[str, object]:
     filename = file.filename or ""
     extension = Path(filename).suffix.lower()
 
@@ -58,7 +68,6 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
                 text_parts.append(page_text)
 
                 page_chunks = split_text(page_text)
-
                 chunks.extend(page_chunks)
 
                 metadata.extend(
@@ -77,7 +86,6 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
                 text_parts.append(paragraph_text)
 
                 paragraph_chunks = split_text(paragraph_text)
-
                 chunks.extend(paragraph_chunks)
 
                 metadata.extend(
@@ -112,3 +120,13 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
         "chunks": chunks,
         "chunk_count": len(chunks),
     }
+
+
+@app.post("/ask")
+def ask_question(
+    request: QuestionRequest,
+) -> dict[str, object]:
+    return generate_answer(
+        question=request.question,
+        limit=request.limit,
+    )
