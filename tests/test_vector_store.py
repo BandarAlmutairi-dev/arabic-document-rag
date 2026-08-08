@@ -60,3 +60,26 @@ def test_search_chunks():
 def test_empty_query_embedding():
     with pytest.raises(ValueError):
         search_chunks([])
+
+
+def test_store_and_search_with_metadata():
+    embedding = [0.0, 1.0] + [0.0] * 382
+
+    store_chunks(
+        ["هذه معلومة من الصفحة الثانية"],
+        [embedding],
+        metadata=[
+            {
+                "filename": "sample.pdf",
+                "page_number": 2,
+            }
+        ],
+    )
+
+    results = search_chunks(
+        query_embedding=embedding,
+        limit=1,
+    )
+
+    assert results[0]["filename"] == "sample.pdf"
+    assert results[0]["page_number"] == 2

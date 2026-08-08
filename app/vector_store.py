@@ -23,20 +23,31 @@ def ensure_collection() -> None:
 def store_chunks(
     chunks: list[str],
     embeddings: list[list[float]],
+    metadata: list[dict[str, object]] | None = None,
 ) -> None:
     if len(chunks) != len(embeddings):
         raise ValueError("chunks and embeddings must have the same length")
 
+    if metadata is not None and len(metadata) != len(chunks):
+        raise ValueError("metadata and chunks must have the same length")
+
     ensure_collection()
 
-    points = [
-        PointStruct(
-            id=str(uuid4()),
-            vector=embedding,
-            payload={"text": chunk},
+    points = []
+
+    for index, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        payload: dict[str, object] = {"text": chunk}
+
+        if metadata is not None:
+            payload.update(metadata[index])
+
+        points.append(
+            PointStruct(
+                id=str(uuid4()),
+                vector=embedding,
+                payload=payload,
+            )
         )
-        for chunk, embedding in zip(chunks, embeddings)
-    ]
 
     if points:
         client.upsert(
@@ -64,10 +75,19 @@ def search_chunks(
         with_payload=True,
     )
 
-    return [
-        {
-            "text": point.payload.get("text", "") if point.payload else "",
-            "score": point.score,
-        }
-        for point in response.points
-    ]
+    results = []
+
+    for point in response.points:
+        payload = point.payload or {}
+
+        results.append(
+            {
+                "text": payload.get("text", ""),
+                "filename": payload.get("filename"),
+                "page_number": payload.get("page_number"),
+                "paragraph_number": payload.get("paragraph_number"),
+                "score": point.score,
+            }
+        )
+
+    return results
