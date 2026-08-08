@@ -43,3 +43,31 @@ def store_chunks(
             collection_name=COLLECTION_NAME,
             points=points,
         )
+
+
+def search_chunks(
+    query_embedding: list[float],
+    limit: int = 3,
+) -> list[dict[str, object]]:
+    if not query_embedding:
+        raise ValueError("query_embedding must not be empty")
+
+    if limit <= 0:
+        raise ValueError("limit must be greater than 0")
+
+    ensure_collection()
+
+    response = client.query_points(
+        collection_name=COLLECTION_NAME,
+        query=query_embedding,
+        limit=limit,
+        with_payload=True,
+    )
+
+    return [
+        {
+            "text": point.payload.get("text", "") if point.payload else "",
+            "score": point.score,
+        }
+        for point in response.points
+    ]
