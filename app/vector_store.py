@@ -7,6 +7,7 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 
 COLLECTION_NAME = "documents"
 VECTOR_SIZE = 384
+MIN_RELEVANCE_SCORE = 0.35
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 QDRANT_PATH = BASE_DIR / "data" / "qdrant"
@@ -78,6 +79,7 @@ def search_chunks(
         collection_name=COLLECTION_NAME,
         query=query_embedding,
         limit=limit,
+        score_threshold=MIN_RELEVANCE_SCORE,
         with_payload=True,
     )
 
