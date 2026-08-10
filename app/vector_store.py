@@ -7,7 +7,7 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 
 COLLECTION_NAME = "documents"
 VECTOR_SIZE = 384
-MIN_RELEVANCE_SCORE = 0.35
+MIN_RELEVANCE_SCORE = 0.75
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 QDRANT_PATH = BASE_DIR / "data" / "qdrant"
