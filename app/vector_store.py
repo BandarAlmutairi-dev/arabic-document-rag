@@ -1,12 +1,18 @@
+from pathlib import Path
 from uuid import uuid4
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
+
 COLLECTION_NAME = "documents"
 VECTOR_SIZE = 384
 
-client = QdrantClient(":memory:")
+BASE_DIR = Path(__file__).resolve().parent.parent
+QDRANT_PATH = BASE_DIR / "data" / "qdrant"
+QDRANT_PATH.mkdir(parents=True, exist_ok=True)
+
+client = QdrantClient(path=str(QDRANT_PATH))
 
 
 def ensure_collection() -> None:
